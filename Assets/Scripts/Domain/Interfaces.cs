@@ -1,3 +1,4 @@
+// open closed principle
 namespace WheelGame.Domain
 {
     // decides if a zone is normal, silver or gold

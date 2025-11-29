@@ -25,8 +25,8 @@ namespace WheelGame.Domain
         // TODO: extend it later based on the rewards, need to think first if im gonna count knife and a gun both weapon, we will see
     }
 
+    // core classes
     // we build slices from rewards, then build the wheel from both zonestates and slices
-
     public sealed class ZoneState
     {
         public int Index { get; }
