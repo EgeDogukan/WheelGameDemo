@@ -69,6 +69,9 @@ namespace WheelGame.Domain
             {
                 var baseAmount = slice.Reward.Amount;   // calculate reward based on zone depth so we dont have to set up each turn by hand
                 var scaledAmount = _progression.GetAmount(baseAmount, CurrentZoneIndex);    
+
+                delta = scaledAmount;
+                TotalReward += _progression.GetAmount(baseAmount, CurrentZoneIndex);
             }
 
             var result = new SpinResult(CurrentZoneIndex,
