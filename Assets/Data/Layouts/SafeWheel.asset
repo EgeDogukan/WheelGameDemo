@@ -12,5 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d880c0186054e5045b4709b87b1a9af2, type: 3}
   m_Name: SafeWheel
   m_EditorClassIdentifier: 
-  zoneType: 0
-  slices: []
+  zoneType: 1
+  slices:
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}
+  - {fileID: 11400000, guid: 4a15f0ae39131ff46a5a73d8e2bf33f7, type: 2}
+  - {fileID: 11400000, guid: e6a1f71fc12fd16448d29c47d2305476, type: 2}

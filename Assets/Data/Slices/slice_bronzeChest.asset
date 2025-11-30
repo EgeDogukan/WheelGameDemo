@@ -10,10 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4666c546907939746a9dc5eebb75e5cf, type: 3}
-  m_Name: Slice3
+  m_Name: slice_bronzeChest
   m_EditorClassIdentifier: 
-  id: 
+  id: 7
   sliceType: 0
-  rewardType: 0
-  baseAmount: 0
-  icon: {fileID: 0}
+  rewardType: 4
+  baseAmount: 2
+  icon: {fileID: 21300000, guid: 45a73dbf4aa1d92489604583f07002a2, type: 3}
+  rewardTier: 0

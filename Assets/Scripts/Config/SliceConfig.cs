@@ -1,6 +1,13 @@
 using UnityEngine;
 using WheelGame.Domain;
 
+public enum RewardTier
+{
+    Bronze,
+    Silver,
+    Gold
+}
+
 namespace WheelGame.Config
 {
     [CreateAssetMenu(menuName = "Slice Config")]
@@ -20,5 +27,8 @@ namespace WheelGame.Config
 
         [Header("Sprite icon")]
         public Sprite icon;
+
+        [Header("Tier")]
+        public RewardTier rewardTier;   // for editor clarity only, no effect on systems
     }
 }
