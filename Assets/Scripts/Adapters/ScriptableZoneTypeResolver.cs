@@ -4,15 +4,15 @@ namespace WheelGame.Adapters
 {
     public class ScriptableZoneTypeResolver : IZoneTypeResolver
     {
-        private const int superZoneInterval = 30;
-        private const int safeZoneInterval = 5;
+        private const int SuperZoneInterval = 30;
+        private const int SafeZoneInterval = 5;
         public ZoneType GetZoneTypeForZoneIndex(int zoneIndex)
         {
-            if(zoneIndex % superZoneInterval == 0)
+            if(zoneIndex % SuperZoneInterval == 0)
             {
                 return ZoneType.SuperGold;
             }
-            if(zoneIndex % safeZoneInterval == 0)
+            if(zoneIndex % SafeZoneInterval == 0)
             {
                 return ZoneType.SafeSilver;
             }

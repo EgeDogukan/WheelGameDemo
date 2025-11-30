@@ -10,17 +10,15 @@ namespace WheelGame.Adapters
         private readonly WheelLayoutConfig _normal;
         private readonly WheelLayoutConfig _safe;
         private readonly WheelLayoutConfig _super;
-        private readonly IRewardProgressionStrategy _progression;
 
-        public ScriptableWheelDefinitionProvider(WheelLayoutConfig nomal,
+        public ScriptableWheelDefinitionProvider(WheelLayoutConfig normal,
                                                  WheelLayoutConfig safe,
                                                  WheelLayoutConfig super
                                                  )
         {
-            _normal = nomal;
+            _normal = normal;
             _safe = safe;
             _super = super;
-            
         }
         
         public WheelDefinition GetWheelFor(ZoneType zoneType, int zoneIndex)

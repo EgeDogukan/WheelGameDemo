@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace WheelGame.Domain
@@ -61,9 +62,13 @@ namespace WheelGame.Domain
 
         public Slice(SliceType sliceType, Reward? reward)
         {
+            if (sliceType == SliceType.Bomb && reward != null)
+            {
+                throw new ArgumentException("Bomb slice cannot have a reward.", nameof(reward));
+            }
+        
             SliceType = sliceType;
-            Reward = reward;
-            
+            Reward = reward;          
         }
     }
 

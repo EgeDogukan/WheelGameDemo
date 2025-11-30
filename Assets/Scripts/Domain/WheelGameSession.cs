@@ -71,7 +71,7 @@ namespace WheelGame.Domain
                 var scaledAmount = _progression.GetAmount(baseAmount, CurrentZoneIndex);    
 
                 delta = scaledAmount;
-                TotalReward += _progression.GetAmount(baseAmount, CurrentZoneIndex);
+                TotalReward += scaledAmount;
             }
 
             var result = new SpinResult(CurrentZoneIndex,
