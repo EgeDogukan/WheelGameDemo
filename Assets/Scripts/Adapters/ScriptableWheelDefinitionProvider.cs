@@ -47,5 +47,16 @@ namespace WheelGame.Adapters
             }
             return new WheelDefinition(layoutConfig.zoneType, domainSlices);
         }
+
+        public WheelLayoutConfig GetLayoutConfigFor(ZoneType zoneType)
+        {
+            return zoneType switch
+            {
+                ZoneType.Normal     => _normal,
+                ZoneType.SafeSilver => _safe,
+                ZoneType.SuperGold  => _super,
+                _                   => _normal
+            };
+        }
     }
 }
