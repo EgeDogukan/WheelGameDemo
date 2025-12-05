@@ -23,6 +23,8 @@ public class WheelGameController : MonoBehaviour
     [SerializeField] private Button ui_button_leave;
 
     [SerializeField] private RewardSummaryView rewardSummaryView;
+    [SerializeField] private RectTransform ui_image_reward_fly_anchor;
+    private int _lastSpinSliceIndex = -1;
 
     private readonly Dictionary<RewardType, int> _rewardTotals = new();
 
@@ -55,6 +57,10 @@ public class WheelGameController : MonoBehaviour
             
         if (rewardSummaryView == null)
             rewardSummaryView = GetComponentInChildren<RewardSummaryView>(true);
+
+        if (ui_image_reward_fly_anchor == null)
+            ui_image_reward_fly_anchor =
+                UIAutoBinder.FindComponentInChildren<RectTransform>(transform, "ui_image_reward_fly_anchor");
     }
 
     private void Awake()
@@ -80,6 +86,10 @@ public class WheelGameController : MonoBehaviour
         
         if (rewardSummaryView == null)
             rewardSummaryView = GetComponentInChildren<RewardSummaryView>(true);
+
+        if (ui_image_reward_fly_anchor == null)
+            ui_image_reward_fly_anchor =
+                UIAutoBinder.FindComponentInChildren<RectTransform>(transform, "ui_image_reward_fly_anchor");
 
         _zoneResolver = new ScriptableZoneTypeResolver();
         _progression = new LinearRewardProgressionStrategy(progressionConfig);
@@ -192,6 +202,7 @@ public class WheelGameController : MonoBehaviour
         UpdateButtons();
 
         int sliceIndex = _session.ChooseSliceIndex();
+        _lastSpinSliceIndex = sliceIndex;
 
         wheelView.SpinToSlice(sliceIndex, () =>
         {
@@ -207,30 +218,65 @@ public class WheelGameController : MonoBehaviour
 
         if (result.HitBomb)
         {
-            // lost everything
             _rewardTotals.Clear();
             bombPopupView?.Show();
+
+            UpdateHud();
+            rewardSummaryView?.ClearAll(); 
+            // rewardSummaryView?.SetTotals(_rewardTotals);
+
+            _isSpinning = false;
+            UpdateButtons();
+            return;
         }
-        else if (result.LandedSlice.Reward != null && result.RewardDelta > 0)
+
+        RectTransform targetAnchor = null;
+
+        if (result.LandedSlice.Reward != null && result.RewardDelta > 0)
         {
             var type = result.LandedSlice.Reward.Type;
             if (_rewardTotals.TryGetValue(type, out var old))
                 _rewardTotals[type] = old + result.RewardDelta;
             else
                 _rewardTotals[type] = result.RewardDelta;
-            //Debug.Log("HEYYYYY");
-            //Debug.Log(result.LandedSlice.Reward.Type);
         }
 
         UpdateHud();
         rewardSummaryView?.SetTotals(_rewardTotals);
 
-        _isSpinning = false;
-        UpdateButtons();
-
-        if (!_session.IsFinished && !_session.IsBombHit)
+        // get row anchor for this reward type
+        if (result.LandedSlice.Reward != null && rewardSummaryView != null)
         {
-            BuildWheelForCurrentZone();
+            var type = result.LandedSlice.Reward.Type;
+            targetAnchor = rewardSummaryView.GetAnchorFor(type);
+        }
+
+        // fallback
+        if (targetAnchor == null && ui_image_reward_fly_anchor != null)
+            targetAnchor = ui_image_reward_fly_anchor;
+
+        if (wheelView != null && targetAnchor != null && _lastSpinSliceIndex >= 0)
+        {
+            wheelView.PlayCollectAnimation(_lastSpinSliceIndex, targetAnchor, 0.5f, () =>
+            {
+                if (!_session.IsFinished && !_session.IsBombHit)
+                {
+                    BuildWheelForCurrentZone();
+                }
+
+                _isSpinning = false;
+                UpdateButtons();
+            });
+        }
+        else
+        {
+            if (!_session.IsFinished && !_session.IsBombHit)
+            {
+                BuildWheelForCurrentZone();
+            }
+
+            _isSpinning = false;
+            UpdateButtons();
         }
     }
 

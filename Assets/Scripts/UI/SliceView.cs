@@ -58,5 +58,7 @@ namespace WheelGame.UI
             rootTransform.anchoredPosition = dir * radius;
             rootTransform.localRotation = Quaternion.Euler(0f, 0f, -angleDegrees); // radial orientation face up
         }
+
+        public RectTransform IconRectTransform => ui_image_slice_icon_value != null ? (RectTransform)ui_image_slice_icon_value.transform : rootTransform;
     }
 }

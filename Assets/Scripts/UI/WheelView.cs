@@ -89,7 +89,7 @@ namespace WheelGame.UI
             HandlePointerTick();
         }
 
-        // Logic to detect when a peg passes the pointer
+        // logic to detect when a peg passes the pointer
         private void HandlePointerTick()
         {
             
@@ -119,12 +119,8 @@ namespace WheelGame.UI
 
             if (_pointerRect != null)
             {
-                // Kill any existing punch so they don't stack up weirdly if spinning super fast
                 _pointerRect.DOKill(true); 
-                
-                _pointerRect.localRotation = Quaternion.identity; 
-
-             
+                _pointerRect.localRotation = Quaternion.identity;     
                 _pointerRect.DOPunchRotation(new Vector3(0, 0, tickStrength), tickDuration, 10, 1f);
             }
         }
@@ -246,6 +242,62 @@ namespace WheelGame.UI
                 return;
 
             ui_text_multiplier_value.text = $"x{factor:0.0}";
+        }
+
+        public void PlayCollectAnimation(int sliceIndex, RectTransform target, float duration, Action onComplete)
+        {
+            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Count ||
+                target == null || wheelTransform == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            var sliceView = _sliceViews[sliceIndex];
+            var iconRect = sliceView.IconRectTransform;
+
+            var canvas = wheelTransform.GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            // create temp icon to animate
+            var flyObj  = new GameObject("ui_reward_fly_icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            var flyRect = (RectTransform)flyObj.transform;
+            flyRect.SetParent(canvas.transform, worldPositionStays: false);
+
+            var flyImage = flyObj.GetComponent<Image>();
+            flyImage.raycastTarget = false;
+            var sourceImage = iconRect.GetComponent<Image>();
+            if (sourceImage != null)
+            {
+                flyImage.sprite = sourceImage.sprite;
+                flyImage.preserveAspect = true;
+            }
+            flyImage.raycastTarget = false;
+
+            flyRect.position   = iconRect.position;
+            flyRect.localScale = Vector3.one * 0.8f; 
+
+            float half = duration * 0.5f;
+            float midScale = 1.4f;
+
+            var seq = DOTween.Sequence();
+            var moveTween = flyRect.DOMove(target.position, duration).SetEase(Ease.InOutQuad);
+                                           seq.Append(moveTween);
+            var scaleSeq = DOTween.Sequence()
+                                            .Append(flyRect.DOScale(midScale, half).SetEase(Ease.OutQuad))
+                                            .Append(flyRect.DOScale(0f, half).SetEase(Ease.InQuad));
+
+            seq.Join(scaleSeq);
+
+            seq.OnComplete(() =>
+            {
+                Destroy(flyObj);
+                onComplete?.Invoke();
+            });
         }
     }
 }
