@@ -18,6 +18,7 @@ public class WheelGameController : MonoBehaviour
     [SerializeField] private WheelView wheelView;
     [SerializeField] private HudView hudView;
     [SerializeField] private BombPopupView bombPopupView;
+    [SerializeField] private LeaveSummaryPopupView leavePopupView;
 
     [SerializeField] private Button ui_button_spin;
     [SerializeField] private Button ui_button_leave;
@@ -61,6 +62,8 @@ public class WheelGameController : MonoBehaviour
         if (ui_image_reward_fly_anchor == null)
             ui_image_reward_fly_anchor =
                 UIAutoBinder.FindComponentInChildren<RectTransform>(transform, "ui_image_reward_fly_anchor");
+        if (leavePopupView == null)
+            leavePopupView = GetComponentInChildren<LeaveSummaryPopupView>(true);
     }
 
     private void Awake()
@@ -90,6 +93,8 @@ public class WheelGameController : MonoBehaviour
         if (ui_image_reward_fly_anchor == null)
             ui_image_reward_fly_anchor =
                 UIAutoBinder.FindComponentInChildren<RectTransform>(transform, "ui_image_reward_fly_anchor");
+        if (leavePopupView == null)
+            leavePopupView = GetComponentInChildren<LeaveSummaryPopupView>(true);
 
         _zoneResolver = new ScriptableZoneTypeResolver();
         _progression = new LinearRewardProgressionStrategy(progressionConfig);
@@ -113,6 +118,10 @@ public class WheelGameController : MonoBehaviour
 
         if (bombPopupView != null)
             bombPopupView.SetCallbacks(OnGiveUpClicked, null, null);
+        
+        if (leavePopupView != null)
+            leavePopupView.SetPlayAgainCallback(OnPlayAgainClicked);
+
     }
 
     private void OnDisable()
@@ -283,13 +292,17 @@ public class WheelGameController : MonoBehaviour
     private void OnLeaveClicked()
     {
         if (_session == null || !_session.CanLeave || _isSpinning)
-            return;
+        return;
 
         LeaveResult result = _session.Leave();
 
-        // can later show a summary popup here using result.TotalReward
         UpdateHud();
         UpdateButtons();
+
+        if (leavePopupView != null)
+        {
+            leavePopupView.Show(_rewardTotals, result.TotalReward);
+        }
     }
 
     private void OnGiveUpClicked()
@@ -297,6 +310,14 @@ public class WheelGameController : MonoBehaviour
         // after hitting bomb and giving up -> restart the game again as instructed
         StartNewSession();
     }
+
+    private void OnPlayAgainClicked()
+    {
+        // close popup then start fresh
+        leavePopupView?.Hide();
+        StartNewSession();
+    }
+
 
     private static int GetNextMultiple(int current, int step)
     {

@@ -41,6 +41,12 @@ namespace WheelGame.UI
         {
             if (totals == null || ui_reward_summary_container == null || itemPrefab == null)
                 return;
+            if (totals == null || totals.Count == 0)
+            {
+                ClearAll();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(ui_reward_summary_container);
+                return;
+            }
 
             bool layoutChanged = false;
 
