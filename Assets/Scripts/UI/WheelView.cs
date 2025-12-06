@@ -13,16 +13,15 @@ namespace WheelGame.UI
     {
         [Header("References")]
         [SerializeField] private RectTransform wheelTransform;    
-        [SerializeField] private SliceView slicePrefab;  
+        [SerializeField] private SliceView slicePrefab;   
         [SerializeField] private TMP_Text ui_text_multiplier_value;
- 
 
         [Header("Spin Settings")]
         [SerializeField] private float spinDuration = 2.0f;
         [SerializeField] private int extraFullRotations = 3;
         [SerializeField] private float pointerOffsetAngle = 0f;
 
-         [Header("Layout")]
+        [Header("Layout")]
         [SerializeField] private float sliceRadius = 300f; 
         [SerializeField] private float sliceBaseAngleOffset = 0f; 
 
@@ -42,8 +41,15 @@ namespace WheelGame.UI
         [SerializeField] private Sprite silverWheelSpritePointer;
         [SerializeField] private Sprite goldWheelSpritePointer;
 
+        [Header("Pooling")]
+        [SerializeField] private Transform slicePoolRoot; 
+        [SerializeField] private Transform flyPoolRoot;
+
         // Internal State
-        private readonly List<SliceView> _sliceViews = new();
+        private readonly List<SliceView> _sliceViews = new();   // active slices on wheel
+        private readonly Stack<SliceView> _slicePool = new();   // inactive reusable slices
+        private readonly Stack<GameObject> _flyIconPool = new(); // inactive fly icons
+
         private int _sliceCount;
         private RectTransform _pointerRect;
         private float _lastWheelAngle;
@@ -62,8 +68,8 @@ namespace WheelGame.UI
                 slicePrefab = GetComponentInChildren<SliceView>(true);
             }
 
-            if (audioSource == null)     
-            {                   // ended up not using it 
+            if (audioSource == null)
+            {
                 audioSource = GetComponent<AudioSource>();
             }
 
@@ -77,33 +83,53 @@ namespace WheelGame.UI
         {
             if (ui_image_wheel_background_pointer_value != null)
                 _pointerRect = ui_image_wheel_background_pointer_value.GetComponent<RectTransform>();
+
+            EnsurePoolRoots();
         }
 
         private void Update()
         {
             if (!_isSpinning || _sliceCount == 0 || wheelTransform == null) 
-            {
                 return;
-            }
 
             HandlePointerTick();
         }
 
-        // logic to detect when a peg passes the pointer
+        // pooling helpers
+
+        private void EnsurePoolRoots()
+        {
+            if (wheelTransform == null) return;
+
+            // check both slice and fly icon roots
+            if (slicePoolRoot == null)
+            {
+                var go = new GameObject("ui_slice_pool");
+                go.transform.SetParent(wheelTransform.parent != null ? wheelTransform.parent : transform, false);
+                go.SetActive(false);
+                slicePoolRoot = go.transform;
+            }
+
+            if (flyPoolRoot == null)
+            {
+                var go = new GameObject("ui_fly_pool");
+                // Parent to Canvas level so scaling is consistent
+                go.transform.SetParent(wheelTransform.GetComponentInParent<Canvas>().transform, false);
+                go.SetActive(false);
+                flyPoolRoot = go.transform;
+            }
+        }
+
+        // pointer tick ani.
+
         private void HandlePointerTick()
         {
-            
             float currentAngle = wheelTransform.localEulerAngles.z;
-            
-            // calculate the segment size
             float anglePerSegment = 360f / _sliceCount;
 
-            // check current index vs last frame index
-            // here i use simple modulo math to determine which "slice" is currently at the top.
             int lastIndex = (int)(_lastWheelAngle / anglePerSegment);
             int currentIndex = (int)(currentAngle / anglePerSegment);
 
-            // if the integer index changed, we crossed a line!
             if (lastIndex != currentIndex)
             {
                 PlayTickEffect();
@@ -125,34 +151,74 @@ namespace WheelGame.UI
             }
         }
 
+        // building wheel with pooling
+
         public void BuildFromLayout(
             WheelLayoutConfig layoutConfig,
             IRewardProgressionStrategy progression,
             int zoneIndex)
         {
-            ClearExistingSlices();
+            // 1. Safety Checks
+            if (layoutConfig == null || layoutConfig.slices == null) return;
+            int targetCount = layoutConfig.slices.Count;
+            if (targetCount == 0) return;
 
             if (wheelTransform != null)
                 wheelTransform.localRotation = Quaternion.identity;
 
-            if (layoutConfig == null || layoutConfig.slices == null)
-                return;
-
-            _sliceCount = layoutConfig.slices.Count;
-            if (_sliceCount == 0)
-                return;
-
+            _sliceCount = targetCount;
             float angleStep = 360f / _sliceCount;
+            EnsurePoolRoots();
             
-            for (int i = 0; i < _sliceCount; i++)
+            // CASE A: Too many slices? Remove extras and pool them
+            while (_sliceViews.Count > targetCount)
             {
+                int lastIndex = _sliceViews.Count - 1;
+                var sliceToRemove = _sliceViews[lastIndex];
+                _sliceViews.RemoveAt(lastIndex);
+
+                if (Application.isPlaying)
+                {
+                    sliceToRemove.gameObject.SetActive(false);
+                    sliceToRemove.transform.SetParent(slicePoolRoot, false);
+                    _slicePool.Push(sliceToRemove);
+                }
+                else
+                {
+                    DestroyImmediate(sliceToRemove.gameObject);
+                }
+            }
+
+            // CASE B: Too few slices? Get from pool or create new
+            while (_sliceViews.Count < targetCount)
+            {
+                SliceView sliceView;
+                
+                if (Application.isPlaying && _slicePool.Count > 0)
+                {
+                    sliceView = _slicePool.Pop();
+                    sliceView.transform.SetParent(wheelTransform, false);
+                    sliceView.gameObject.SetActive(true);
+                }
+                else
+                {
+                    sliceView = Instantiate(slicePrefab, wheelTransform);
+                }
+
+                _sliceViews.Add(sliceView);
+            }
+
+            // 3. Update Data on all slices (Reuse)
+            for (int i = 0; i < targetCount; i++)
+            {
+                var sliceView = _sliceViews[i];
                 var sliceConfig = layoutConfig.slices[i];
-                var sliceView = Instantiate(slicePrefab, wheelTransform);
+
                 sliceView.gameObject.name = $"ui_slice_{i}";
+                sliceView.transform.SetAsLastSibling(); // Ensure visual order
 
                 bool isBomb = sliceConfig.sliceType == SliceType.Bomb;
                 int amount = 0;
-
                 if (!isBomb)
                     amount = progression.GetAmount(sliceConfig.baseAmount, zoneIndex);
 
@@ -160,12 +226,12 @@ namespace WheelGame.UI
 
                 float angle = i * angleStep + sliceBaseAngleOffset;
                 sliceView.SetAngleAndRadius(angle, sliceRadius);
-
-                _sliceViews.Add(sliceView);
             }
 
             SetWheelSprite(layoutConfig.zoneType);
         }
+
+        // spin animation
 
         public void SpinToSlice(int sliceIndex, Action onComplete)
         {
@@ -176,7 +242,7 @@ namespace WheelGame.UI
             }
 
             _isSpinning = true;
-            _lastWheelAngle = wheelTransform.localEulerAngles.z; // Init tracker
+            _lastWheelAngle = wheelTransform.localEulerAngles.z; 
 
             float segmentAngle = 360f / _sliceCount;
             float currentSliceAngle = sliceIndex * segmentAngle + sliceBaseAngleOffset;
@@ -193,20 +259,7 @@ namespace WheelGame.UI
                 });
         }
 
-        private void ClearExistingSlices()
-        {
-            foreach (var sliceView in _sliceViews)
-            {
-                if (sliceView != null)
-                {
-                    if (Application.isPlaying)
-                        Destroy(sliceView.gameObject);
-                    else
-                        DestroyImmediate(sliceView.gameObject);
-                }
-            }
-            _sliceViews.Clear();
-        }
+        // visuals and multiplier
 
         private void SetWheelSprite(ZoneType zoneType)
         {
@@ -244,33 +297,44 @@ namespace WheelGame.UI
             ui_text_multiplier_value.text = $"x{factor:0.0}";
         }
 
+        // fly ani. using pooling
+
         public void PlayCollectAnimation(int sliceIndex, RectTransform target, float duration, Action onComplete)
         {
-            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Count ||
-                target == null || wheelTransform == null)
+            if (sliceIndex < 0 || sliceIndex >= _sliceViews.Count || target == null)
             {
                 onComplete?.Invoke();
                 return;
             }
+
+            EnsurePoolRoots();
 
             var sliceView = _sliceViews[sliceIndex];
             var iconRect = sliceView.IconRectTransform;
+            var sourceImage = iconRect.GetComponent<Image>();
 
-            var canvas = wheelTransform.GetComponentInParent<Canvas>();
-            if (canvas == null)
+            GameObject flyObj;
+            if (_flyIconPool.Count > 0)
             {
-                onComplete?.Invoke();
-                return;
+                flyObj = _flyIconPool.Pop();
+            }
+            else
+            {
+                flyObj = new GameObject("ui_reward_fly_icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             }
 
-            // create temp icon to animate
-            var flyObj  = new GameObject("ui_reward_fly_icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             var flyRect = (RectTransform)flyObj.transform;
-            flyRect.SetParent(canvas.transform, worldPositionStays: false);
-
             var flyImage = flyObj.GetComponent<Image>();
+            var canvas = wheelTransform.GetComponentInParent<Canvas>();
             flyImage.raycastTarget = false;
-            var sourceImage = iconRect.GetComponent<Image>();
+            if (canvas != null)
+            {
+                flyRect.SetParent(canvas.transform, worldPositionStays: false);
+            }
+ 
+            flyObj.SetActive(true);
+
+            // configuring
             if (sourceImage != null)
             {
                 flyImage.sprite = sourceImage.sprite;
@@ -278,24 +342,34 @@ namespace WheelGame.UI
             }
             flyImage.raycastTarget = false;
 
-            flyRect.position   = iconRect.position;
-            flyRect.localScale = Vector3.one * 0.8f; 
+            flyRect.position = iconRect.position;
+            flyRect.localScale = Vector3.one * 0.8f;
+            flyRect.localRotation = Quaternion.identity;
 
+            // and animating
             float half = duration * 0.5f;
             float midScale = 1.4f;
 
             var seq = DOTween.Sequence();
-            var moveTween = flyRect.DOMove(target.position, duration).SetEase(Ease.InOutQuad);
-                                           seq.Append(moveTween);
+            
+            seq.Append(flyRect.DOMove(target.position, duration).SetEase(Ease.InOutQuad));
+            
             var scaleSeq = DOTween.Sequence()
-                                            .Append(flyRect.DOScale(midScale, half).SetEase(Ease.OutQuad))
-                                            .Append(flyRect.DOScale(0f, half).SetEase(Ease.InQuad));
+                .Append(flyRect.DOScale(midScale, half).SetEase(Ease.OutQuad))
+                .Append(flyRect.DOScale(0f, half).SetEase(Ease.InQuad));
 
             seq.Join(scaleSeq);
 
             seq.OnComplete(() =>
             {
-                Destroy(flyObj);
+                // back to pool
+                if (flyObj != null) 
+                {
+                    flyObj.SetActive(false);
+                    if (flyPoolRoot != null) flyRect.SetParent(flyPoolRoot);
+                    _flyIconPool.Push(flyObj);
+                }
+                
                 onComplete?.Invoke();
             });
         }
