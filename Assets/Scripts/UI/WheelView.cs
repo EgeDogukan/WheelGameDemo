@@ -155,13 +155,19 @@ namespace WheelGame.UI
 
         public void BuildFromLayout(
             WheelLayoutConfig layoutConfig,
-            IRewardProgressionStrategy progression,
-            int zoneIndex)
+            IReadOnlyList<int> calculatedAmounts)
         {
             // 1. Safety Checks
             if (layoutConfig == null || layoutConfig.slices == null) return;
             int targetCount = layoutConfig.slices.Count;
             if (targetCount == 0) return;
+            
+            // Validate amounts list matches slice count
+            if (calculatedAmounts == null || calculatedAmounts.Count != targetCount)
+            {
+                Debug.LogError($"WheelView.BuildFromLayout: calculatedAmounts count ({calculatedAmounts?.Count ?? 0}) doesn't match slice count ({targetCount})");
+                return;
+            }
 
             if (wheelTransform != null)
                 wheelTransform.localRotation = Quaternion.identity;
@@ -218,9 +224,7 @@ namespace WheelGame.UI
                 sliceView.transform.SetAsLastSibling(); // Ensure visual order
 
                 bool isBomb = sliceConfig.sliceType == SliceType.Bomb;
-                int amount = 0;
-                if (!isBomb)
-                    amount = progression.GetAmount(sliceConfig.baseAmount, zoneIndex);
+                int amount = calculatedAmounts[i]; // Use pre-calculated amount from controller
 
                 sliceView.Configure(sliceConfig.icon, amount, isBomb);
 

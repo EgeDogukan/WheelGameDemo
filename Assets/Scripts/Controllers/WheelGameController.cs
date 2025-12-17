@@ -32,7 +32,7 @@ public class WheelGameController : MonoBehaviour
 
     // domain + adapters
     private ScriptableZoneTypeResolver _zoneResolver;
-    private ScriptableWheelDefinitionProvider _wheelProvider;
+    private IWheelDefinitionProvider _wheelProvider;  // ✅ Interface type - easy to swap implementations
     private LinearRewardProgressionStrategy _progression;
     private UnityRandomProvider _random;
     private WheelGameSession _session;
@@ -185,7 +185,24 @@ public class WheelGameController : MonoBehaviour
         if (wheelView == null || _session == null) return;
 
         var layout = _wheelProvider.GetLayoutConfigFor(_session.CurrentZoneType);
-        wheelView.BuildFromLayout(layout, _progression, _session.CurrentZoneIndex);
+        
+        // Calculate amounts in controller (not in UI layer)
+        var calculatedAmounts = new List<int>();
+        foreach (var sliceConfig in layout.slices)
+        {
+            if (sliceConfig.sliceType == SliceType.Bomb)
+            {
+                calculatedAmounts.Add(0); // Bombs have no amount
+            }
+            else
+            {
+                int scaledAmount = _progression.GetAmount(sliceConfig.baseAmount, _session.CurrentZoneIndex);
+                calculatedAmounts.Add(scaledAmount);
+            }
+        }
+        
+        // Pass pre-calculated amounts to UI (no domain interface dependency)
+        wheelView.BuildFromLayout(layout, calculatedAmounts);
     }
 
     private void UpdateButtons()
