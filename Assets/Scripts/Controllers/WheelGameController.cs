@@ -31,10 +31,10 @@ public class WheelGameController : MonoBehaviour
 
 
     // domain + adapters
-    private ScriptableZoneTypeResolver _zoneResolver;
+    private IZoneTypeResolver _zoneResolver;
     private ScriptableWheelDefinitionProvider _wheelProvider;  //Interface type - easy to swap implementations
-    private LinearRewardProgressionStrategy _progression;
-    private UnityRandomProvider _random;
+    private IRewardProgressionStrategy _progression;
+    private IRandomProvider _random;
     private WheelGameSession _session;
 
     private bool _isSpinning;
