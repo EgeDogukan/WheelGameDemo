@@ -1229,6 +1229,10 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8567527737892422190, guid: 69f7e29f95cf81441b35b8cc8cb66990, type: 3}
+      propertyPath: itemPrefab
+      value: 
+      objectReference: {fileID: 2753671921972803260, guid: e9a64dc0e53ec554c9be5b42a63e1c6d, type: 3}
     - target: {fileID: 8567527738217762010, guid: 69f7e29f95cf81441b35b8cc8cb66990, type: 3}
       propertyPath: m_Name
       value: ui_panel_game
