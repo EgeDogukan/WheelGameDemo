@@ -100,9 +100,7 @@ public class WheelGameController : MonoBehaviour
         _progression = new LinearRewardProgressionStrategy(progressionConfig);
         _random = new UnityRandomProvider();
         _wheelProvider = new ScriptableWheelDefinitionProvider(
-            normalZoneConfig,
-            safeZoneConfig,
-            superZoneConfig
+            new List<WheelLayoutConfig> { normalZoneConfig, safeZoneConfig, superZoneConfig }
         );
 
         StartNewSession();

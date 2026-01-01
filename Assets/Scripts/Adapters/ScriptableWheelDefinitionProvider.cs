@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using WheelGame.Config;
 using WheelGame.Domain;
 
@@ -7,29 +9,16 @@ namespace WheelGame.Adapters
 {
     public class ScriptableWheelDefinitionProvider : IWheelDefinitionProvider
     {
-        private readonly WheelLayoutConfig _normal;
-        private readonly WheelLayoutConfig _safe;
-        private readonly WheelLayoutConfig _super;
+        private readonly IReadOnlyDictionary<ZoneType, WheelLayoutConfig> _layouts;
 
-        public ScriptableWheelDefinitionProvider(WheelLayoutConfig normal,
-                                                 WheelLayoutConfig safe,
-                                                 WheelLayoutConfig super
-                                                 )
+        public ScriptableWheelDefinitionProvider(IEnumerable<WheelLayoutConfig> layouts)
         {
-            _normal = normal;
-            _safe = safe;
-            _super = super;
+            _layouts = layouts.ToDictionary(layout => layout.zoneType);
         }
         
         public WheelDefinition GetWheelFor(ZoneType zoneType, int zoneIndex)
         {
-            WheelLayoutConfig layoutConfig = zoneType switch
-            {
-                ZoneType.Normal => _normal,
-                ZoneType.SafeSilver => _safe,
-                ZoneType.SuperGold => _super,
-                _ => _normal
-            };
+            WheelLayoutConfig layoutConfig = GetLayoutConfigFor(zoneType);
 
             var domainSlices = new List<Slice>();
 
@@ -50,13 +39,11 @@ namespace WheelGame.Adapters
 
         public WheelLayoutConfig GetLayoutConfigFor(ZoneType zoneType)
         {
-            return zoneType switch
+            if(_layouts.TryGetValue(zoneType, out var layout))
             {
-                ZoneType.Normal     => _normal,
-                ZoneType.SafeSilver => _safe,
-                ZoneType.SuperGold  => _super,
-                _                   => _normal
-            };
+                return layout;
+            }
+            throw new ArgumentException($"No layout config for zone '{zoneType}'", nameof(zoneType));
         }
     }
 }
